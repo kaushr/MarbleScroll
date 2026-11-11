@@ -58,6 +58,21 @@ public final class Session {
         if old != interaction.state && interaction.state == .normal { converter.reset() }
         return result
     }
+    /// true consumes the physical event; false passes it unchanged.
+    /// Output is injected so a construction-failure result is tested without native input.
+    public func route(_ input: Input, output: (ScrollPixels) -> Bool) -> Bool {
+        switch handle(input) {
+        case .pass: return false
+        case .suppress: return true
+        case .scroll(let delta):
+            guard let pixels = converter.convert(delta, settings: interaction.settings) else {
+                stop(.tapFailure); return false
+            }
+            if pixels.isZero { return true }
+            guard output(pixels) else { stop(.tapFailure); return false }
+            return true
+        }
+    }
     /// A failure to allocate output must release the current physical event unchanged.
     public func pixels(for delta: Delta) -> ScrollPixels? { converter.convert(delta, settings: interaction.settings) }
 }
