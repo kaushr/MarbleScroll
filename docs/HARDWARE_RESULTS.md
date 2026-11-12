@@ -31,6 +31,7 @@ New executable SHA-256:
 - Sent SIGUSR1 to the verified earlier test process after the reported nonactivation. No claim is made that scrolling was active beforehand.
 - Read-only `CGGetEventTapList` metadata for the rebuilt process showed **no active/registered tap while setup awaited consent**. The helper filters output to the target PID, reads no event content, creates no tap and requests no permissions. Its source is `scripts/tap-status.swift`.
 - Accepted the detector dialog under the existing live-test approval. The setup window reported Listening, and native metadata verified a HID-entry (`tapPoint=0`), enabled **listen-only** tap with event mask `0x02000000` (secondary mouse-button down only). This establishes native detector creation with Accessibility alone on this Mac; no Input Monitoring or root privilege was needed. No physical button event was captured in that timed observation. The window returned to Normal/Disabled after the ten-second timeout.
+- A later metadata check again returned no taps for the app PID. While the setup window was disabled and waiting, `ps` reported 0.0% instantaneous CPU and 64,736 KiB RSS (about 63.2 MiB), with 0.49 seconds accumulated CPU over 6:50 process lifetime. This includes startup/UI operations and is a single native setup sample, not a controlled idle benchmark or an enabled-scrolling measurement.
 
 ## Pending physical acceptance
 
