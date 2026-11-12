@@ -12,7 +12,7 @@ A small native Swift macOS menu-bar utility for button-controlled trackball scro
 
 **Device limitation:** VID/PID presence is checked, but the Core Graphics fallback filters the global mouse stream. It cannot reliably attribute movement to the trackball. It is never enabled without explicit consent. No HID device is seized. Pointer stability and fail-open behavior are implemented but require physical acceptance testing before normal use.
 
-See [architecture and isolation trade-offs](docs/ARCHITECTURE.md), [security design](docs/SECURITY.md), [interaction and recovery tests](docs/TEST_RESULTS.md), [build/install/permissions](docs/INSTALLATION.md), [manual hardware test](docs/HARDWARE_TESTING.md), and [troubleshooting/removal](docs/TROUBLESHOOTING.md).
+See [architecture and isolation trade-offs](docs/ARCHITECTURE.md), [security design](docs/SECURITY.md), [threat model](docs/THREAT_MODEL.md), [test results](docs/TEST_RESULTS.md), [build results](docs/BUILD_RESULTS.md), [mock performance measurements](docs/PERFORMANCE.md), [build/install/permissions](docs/INSTALLATION.md), [manual hardware test](docs/HARDWARE_TESTING.md), and [troubleshooting/removal](docs/TROUBLESHOOTING.md).
 
 ```sh
 ./scripts/test.sh
