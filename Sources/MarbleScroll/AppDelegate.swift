@@ -23,6 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var recognitionTimer: Timer?
     private var recognitionDeadline: Double?
     private var probeTimer: Timer?
+    private var detection = ButtonDetection()
+    private var detectionStatus = "Detection is off. Enable it first; tracking will not start automatically."
     private var recoveryWork: DispatchWorkItem?
     private var observers: [NSObjectProtocol] = []
     private var signals: [DispatchSourceSignal] = []
@@ -57,7 +59,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                      NSMenuItem(title: "Setup & Status…", action: #selector(showSetup), keyEquivalent: ""), enabledItem,
                      NSMenuItem(title: "Scroll Speed…", action: #selector(configure), keyEquivalent: ""),
                      reverseItem, NSMenuItem(title: "Configure Button…", action: #selector(configure), keyEquivalent: ""),
-                     NSMenuItem(title: "Detect Button (10 seconds)…", action: #selector(detectButton), keyEquivalent: ""),
                      loginItem, .separator(),
                      NSMenuItem(title: "Emergency Disable", action: #selector(emergency), keyEquivalent: ""),
                      NSMenuItem(title: "About MarbleScroll", action: #selector(about), keyEquivalent: ""),
@@ -82,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func showSetup() {
         if setupPanel == nil {
             let panel = SetupPanel()
-            panel.onDetect = { [weak self] in self?.detectButton() }
+            panel.onDetect = { [weak self] in self?.configure() }
             panel.onToggle = { [weak self] in self?.toggle() }
             panel.onSettings = { [weak self] in self?.configure() }
             panel.onDisable = { [weak self] in self?.emergency() }
@@ -93,7 +94,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillTerminate(_ notification: Notification) { disable(.terminating); presence.stop() }
     func menuWillOpen(_ menu: NSMenu) {
         session.permissionChanged()
-        if !session.enabled { driver.gate.emergencyStop() }
+        if !AXIsProcessTrusted() { disable(.permissionRevoked) }
+        else if !session.enabled && detection.state != .tracking { driver.gate.emergencyStop() }
         refresh()
     }
     private func setupEmergencySignals() {
@@ -144,6 +146,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         recoveryWork?.cancel(); recoveryWork = nil
         recognitionTimer?.invalidate(); recognitionTimer = nil; recognitionDeadline = nil
         probeTimer?.invalidate(); probeTimer = nil
+        detection.reset()
+        detectionStatus = "Detection is off. Enable it first; tracking will not start automatically."
         session.stop(reason)
         refresh()
     }
@@ -170,6 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupPanel?.update(enabled: session.enabled, state: state, button: settings.button,
                            device: presence.connected, permission: AXIsProcessTrusted(),
                            liveAllowed: liveAllowed, probing: probeTimer != nil)
+        panel?.updateDetection(detection.state, status: detectionStatus)
     }
     private func message(_ title: String, _ body: String) {
         let alert = NSAlert(); alert.messageText = title; alert.informativeText = body
@@ -196,7 +201,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func toggle() {
         if session.enabled { disable(.disabled); return }
         guard mayUseLiveInput() else { return }
-        guard settings.button != nil else { message("Configure a button first", "Use Detect Button or enter a verified secondary CG button number."); return }
+        guard settings.button != nil else { message("Configure a button first", "Open Configure Button, enable detection, then click Start Tracking. Press the small button once, choose Use Detected Button, and Save."); return }
         guard consent("Enable global mouse filtering?", "Trackball presence is checked, but mouse events cannot be reliably attributed to a USB device. Other mice and trackpads can drive scrolling. No keyboard events are observed. Emergency disable: kill -USR1 \(ProcessInfo.processInfo.processIdentifier).") else { return }
         disable(.disabled)
         driver.gate.allowExplicitStart()
@@ -210,38 +215,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             panel = SettingsPanel(settings: settings)
             panel?.onSave = { [weak self] value in
                 guard let self else { return }
+                self.disable(.disabled)
                 self.settings = value; self.configuration.save(value); self.session.configure(value); self.refresh()
             }
+            panel?.onDetectionEnabled = { [weak self] in self?.setDetectionEnabled($0) }
+            panel?.onStartTracking = { [weak self] in self?.startButtonTracking() }
+            panel?.onStopTracking = { [weak self] in self?.finishButtonTracking("Tracking stopped. Click Start Tracking to try again.") }
+            panel?.onClose = { [weak self] in self?.disable(.disabled) }
         }
         panel?.update(settings); panel?.showWindow(nil); NSApp.activate(ignoringOtherApps: true)
     }
     @objc private func reverse() {
         disable(.disabled); settings.reverse.toggle(); configuration.save(settings); session.configure(settings); refresh()
     }
-    @objc private func detectButton() {
+    private func setDetectionEnabled(_ enabled: Bool) {
         disable(.disabled)
-        guard mayUseLiveInput(), consent("Observe a secondary button?", "For up to 10 seconds, observe the next secondary mouse-button down globally. It will pass through unchanged. Press the physical small trackball button; other mice cannot be distinguished. No keyboard monitoring or raw HID access.") else { return }
+        // The unchecked-by-default option sits beside the global-scope disclosure.
+        // It authorizes readiness only; Start Tracking remains a separate action.
+        guard enabled, mayUseLiveInput() else { refresh(); return }
+        detection.enable()
+        detectionStatus = "Ready — no input is being tracked. Click Start Tracking when your hand is on the small button."
+        refresh()
+    }
+    private func startButtonTracking() {
+        guard detection.state == .ready else { return }
+        guard mayUseLiveInput() else { disable(.disabled); return }
+        guard detection.start() else { return }
         driver.gate.allowExplicitStart()
         do { try driver.startProbe() }
         catch { disable(.tapFailure); message("Button detection unavailable", error.localizedDescription); return }
-        let timer = Timer(timeInterval: 10, repeats: false) { [weak self] _ in self?.disable(.disabled) }
+        detectionStatus = "Tracking for 10 seconds: press the physical small button once now."
+        let timer = Timer(timeInterval: 10, repeats: false) { [weak self] _ in
+            self?.finishButtonTracking("No button detected. Click Start Tracking to try again.")
+        }
         probeTimer = timer; RunLoop.main.add(timer, forMode: .common)
         refresh()
+    }
+    private func finishButtonTracking(_ status: String) {
+        driver.gate.emergencyStop()
+        probeTimer?.invalidate(); probeTimer = nil
+        session.stop(.disabled)
+        detection.finish(); detectionStatus = status; refresh()
     }
     private func detected(_ button: Int) {
         // No modal UI or preference write inside event callback.
         driver.gate.disarm()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.disable(.disabled)
+            self.finishButtonTracking("Tracking finished. Review the detected button below; Start Tracking is available again.")
             guard (2...31).contains(button) else { return }
-            let a = NSAlert(); a.messageText = "Observed CG button \(button) (one-based \(button + 1))"
-            a.informativeText = "If this was the small trackball button you pressed, select Use Button. Detection is global and does not prove the originating device."
-            a.addButton(withTitle: "Cancel"); a.addButton(withTitle: "Use Button")
-            if a.runModal() == .alertSecondButtonReturn {
-                self.settings.button = button; self.configuration.save(self.settings); self.session.configure(self.settings)
-            }
-            self.refresh()
+            self.panel?.showDetectedButton(button)
         }
     }
     @objc private func login() {

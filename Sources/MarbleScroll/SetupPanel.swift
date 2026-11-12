@@ -17,8 +17,8 @@ final class SetupPanel: NSWindowController {
         let heading = NSTextField(labelWithString: "Set up your small trackball button")
         heading.font = .boldSystemFont(ofSize: 18)
         let instructions = NSTextField(wrappingLabelWithString:
-            "1. Click Detect Small Button, then press the physical small button once.\n2. Confirm Use Button when its number appears.\n3. Click Enable Scrolling and accept global mode.\nHold + roll to scroll; double-click to lock; click once to unlock.")
-        let detect = NSButton(title: "Detect Small Button…", target: self, action: #selector(detect))
+            "1. Open Configure Button. Enable Button Detection, then click Start Tracking.\n2. Press the small button once, choose Use Detected Button, then Save.\n3. Click Enable Scrolling and accept global mode.\nHold + roll to scroll; double-click to lock; click once to unlock.")
+        let detect = NSButton(title: "Configure Button…", target: self, action: #selector(detect))
         enable.target = self; enable.action = #selector(toggle)
         let settings = NSButton(title: "Settings…", target: self, action: #selector(configure))
         let disable = NSButton(title: "Emergency Disable", target: self, action: #selector(emergency))
@@ -40,7 +40,7 @@ final class SetupPanel: NSWindowController {
     }
     required init?(coder: NSCoder) { fatalError("Not a storyboard controller") }
     func update(enabled: Bool, state: String, button: Int?, device: Bool, permission: Bool, liveAllowed: Bool, probing: Bool) {
-        let mapping = button.map { "CG button \($0) (physical mapping saved)" } ?? "Not configured — click Detect Small Button"
+        let mapping = button.map { "CG button \($0) (physical mapping saved)" } ?? "Not configured — open Configure Button"
         prerequisites.stringValue = "Trackball: \(device ? "connected" : "not detected") · Accessibility: \(permission ? "allowed" : "missing")\nButton: \(mapping)"
         status.stringValue = probing ? "Listening: press one small trackball button now (10 seconds)." :
             "\(state). Scrolling \(enabled ? "enabled" : "disabled").\(liveAllowed ? "" : " Live input is gated for this launch.")"
