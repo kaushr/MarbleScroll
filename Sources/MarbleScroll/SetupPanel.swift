@@ -22,8 +22,10 @@ final class SetupPanel: NSWindowController {
         enable.target = self; enable.action = #selector(toggle)
         let settings = NSButton(title: "Settings…", target: self, action: #selector(configure))
         let disable = NSButton(title: "Emergency Disable", target: self, action: #selector(emergency))
+        let close = NSButton(title: "Close", target: self, action: #selector(dismiss))
+        close.keyEquivalent = "\u{1b}"; close.keyEquivalentModifierMask = []
         let controls = NSStackView(views: [detect, enable])
-        let secondary = NSStackView(views: [settings, disable])
+        let secondary = NSStackView(views: [settings, disable, close])
         let stack = NSStackView(views: [heading, instructions, prerequisites, status, controls, secondary])
         stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -51,4 +53,5 @@ final class SetupPanel: NSWindowController {
     @objc private func toggle() { onToggle?() }
     @objc private func configure() { onSettings?() }
     @objc private func emergency() { onDisable?() }
+    @objc private func dismiss() { close() }
 }
