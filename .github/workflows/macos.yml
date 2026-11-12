@@ -1,0 +1,31 @@
+name: macOS validation
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      # Public source only; no third-party actions, tokens or downloaded tools.
+      - name: Check out the exact event commit
+        env:
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          REVISION: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "$REPOSITORY_URL"
+          git fetch --depth 1 origin "$REVISION"
+          git checkout --detach FETCH_HEAD
+      - name: Toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+      - name: Mock tests only
+        run: ./scripts/test.sh
+      - name: SwiftPM arm64 app build (no launch)
+        run: ./scripts/build.sh
+      - name: Xcode Release arm64 app build (no launch)
+        run: xcodebuild -project MarbleScroll.xcodeproj -scheme MarbleScroll -configuration Release -derivedDataPath build/Xcode CODE_SIGN_IDENTITY=- build
+      - name: Verify Xcode bundle signature
+        run: codesign --verify --strict --verbose=2 build/Xcode/Build/Products/Release/MarbleScroll.app
