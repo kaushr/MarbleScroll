@@ -9,5 +9,5 @@ let package = Package(
     targets: [.target(name: "MarbleCore"),
               .executableTarget(name: "MarbleScroll", dependencies: ["MarbleCore"]),
               .testTarget(name: "MarbleCoreTests", dependencies: ["MarbleCore"])],
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )

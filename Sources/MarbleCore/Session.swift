@@ -6,8 +6,19 @@ public protocol InputBackend: AnyObject {
     /// Called only for a timeout; must not preserve any interaction state.
     func recover() throws
 }
-public enum StopReason: String { case disabled, permissionRevoked, deviceDisconnected, sleep, sessionInactive, tapFailure, emergency, terminating }
-public enum StartError: Error, Equatable { case liveNotAuthorized, globalConsentRequired, buttonNotConfigured, deviceMissing, permissionMissing }
+public enum StopReason: String, Sendable { case disabled, permissionRevoked, deviceDisconnected, sleep, sessionInactive, tapFailure, emergency, terminating }
+public enum StartError: LocalizedError, Equatable, CaseIterable {
+    case liveNotAuthorized, globalConsentRequired, buttonNotConfigured, deviceMissing, permissionMissing
+    public var errorDescription: String? {
+        switch self {
+        case .liveNotAuthorized: return "Live input is unavailable for this launch. Scrolling remains disabled."
+        case .globalConsentRequired: return "Enable global mouse handling explicitly before starting scrolling."
+        case .buttonNotConfigured: return "Configure a small trackball button before enabling scrolling."
+        case .deviceMissing: return "Connect the Logitech TrackMan Marble (046D:C408), then try again."
+        case .permissionMissing: return "Allow MarbleScroll in System Settings → Privacy & Security → Accessibility, then try again."
+        }
+    }
+}
 
 /// Main-run-loop owner. Tests inject a fake backend and fake permission/device state.
 public final class Session {

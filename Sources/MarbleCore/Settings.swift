@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Settings: Codable, Equatable {
+public struct Settings: Codable, Equatable, Sendable {
     // CG button numbers are zero-based. No unverified hardware default.
     public var button: Int? = nil
     public var speed: Double = 2
@@ -10,7 +10,7 @@ public struct Settings: Codable, Equatable {
     public var acceleration = false
     // nil uses NSEvent.doubleClickInterval, supplied by the platform adapter.
     public var doubleClickInterval: Double? = nil
-    public var holdDuration: Double = 0.18
+    public var holdDuration: Double = 0.3
     public var movementThreshold: Double = 2
     public init() {}
 
@@ -20,7 +20,7 @@ public struct Settings: Codable, Equatable {
         s.speed = Self.bound(s.speed, 0.1...10, fallback: 2)
         s.horizontal = Self.bound(s.horizontal, 0...5, fallback: 1)
         s.vertical = Self.bound(s.vertical, 0...5, fallback: 1)
-        s.holdDuration = Self.bound(s.holdDuration, 0.05...1, fallback: 0.18)
+        s.holdDuration = Self.bound(s.holdDuration, 0.05...1, fallback: 0.3)
         s.movementThreshold = Self.bound(s.movementThreshold, 0...30, fallback: 2)
         if let d = s.doubleClickInterval {
             s.doubleClickInterval = Self.bound(d, 0.15...1.5, fallback: 0.5)
@@ -32,14 +32,14 @@ public struct Settings: Codable, Equatable {
     }
 }
 
-public struct Delta: Equatable {
+public struct Delta: Equatable, Sendable {
     public var x: Double
     public var y: Double
     public init(_ x: Double, _ y: Double) { self.x = x; self.y = y }
     public static let zero = Delta(0, 0)
 }
 
-public struct ScrollPixels: Equatable {
+public struct ScrollPixels: Equatable, Sendable {
     public var horizontal: Int32
     public var vertical: Int32
     public init(horizontal: Int32, vertical: Int32) {

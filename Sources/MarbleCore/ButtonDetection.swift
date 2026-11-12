@@ -14,5 +14,9 @@ public struct ButtonDetection {
     public mutating func finish() {
         if state == .tracking { state = .ready }
     }
+    /// A menu must not silently invalidate an active, time-limited probe.
+    public func shouldDisarmOnMenuOpen(scrollingEnabled: Bool) -> Bool {
+        !scrollingEnabled && state != .tracking
+    }
     public mutating func reset() { state = .disabled }
 }

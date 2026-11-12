@@ -86,6 +86,7 @@ final class SettingsPanel: NSWindowController, NSWindowDelegate {
         stopTracking.isEnabled = state == .tracking
         detectionStatus.stringValue = status
     }
+    func focusSpeed() { window?.makeFirstResponder(fields["speed"]) }
     func showDetectedButton(_ button: Int) {
         candidate = button; useButton.isEnabled = true
         detectedStatus.stringValue = "Detected CG button \(button) (one-based \(button + 1)). Choose Use Detected Button if this was the small button you pressed."

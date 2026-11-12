@@ -17,16 +17,25 @@ enum NativeInputError: LocalizedError {
 }
 
 final class NativeInput: InputBackend {
-    static let marker: Int64 = 0x4D4152424C455343
+    static let marker = MouseTapRouter.syntheticMarker
     let gate = SafetyLatch<CFMachPort> { port in
         CGEvent.tapEnable(tap: port, enable: false); CFMachPortInvalidate(port)
     }
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var probe = false
-    var onRoute: ((Input, (ScrollPixels) -> Bool) -> Bool)?
-    var onFault: ((Bool) -> Void)?
-    var onButton: ((Int) -> Void)?
+    var permission: () -> Bool = { false }
+    private lazy var router = MouseTapRouter(armed: { [weak self] in self?.gate.isArmed == true },
+        disarm: { [weak self] in self?.gate.disarm() }, permission: { [weak self] in self?.permission() == true })
+    var onRoute: ((Input, (ScrollPixels) -> Bool) -> Bool)? {
+        get { router.onRoute } set { router.onRoute = newValue }
+    }
+    var onFault: ((Bool) -> Void)? {
+        get { router.onFault } set { router.onFault = newValue }
+    }
+    var onButton: ((Int) -> Void)? {
+        get { router.onButton } set { router.onButton = newValue }
+    }
 
     static let scrollingTypes: [CGEventType] = [.mouseMoved, .leftMouseDragged, .rightMouseDragged,
                                                .otherMouseDragged, .otherMouseDown, .otherMouseUp]
@@ -42,8 +51,9 @@ final class NativeInput: InputBackend {
         source = nil; tap = nil; probe = false
     }
     private func install(probe: Bool) throws {
+        dispatchPrecondition(condition: .onQueue(.main))
         stop()
-        guard AXIsProcessTrusted() else { throw NativeInputError.permission }
+        guard permission() else { throw NativeInputError.permission }
         self.probe = probe
         let types: [CGEventType] = probe ? [.otherMouseDown] : Self.scrollingTypes
         // No silent session/warp fallback. Failure is safe and visible.
@@ -69,28 +79,21 @@ final class NativeInput: InputBackend {
         CGEvent.tapEnable(tap: port, enable: true)
     }
     private func receive(_ proxy: CGEventTapProxy, _ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
+        // The source is installed only on CFRunLoopGetMain().
+        dispatchPrecondition(condition: .onQueue(.main))
         let original = Unmanaged.passUnretained(event)
-        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            gate.disarm(); onFault?(type == .tapDisabledByTimeout); return original
-        }
-        guard gate.isArmed else { return original }
-        guard !probe || AXIsProcessTrusted() else {
-            gate.disarm(); onFault?(false); return original
-        }
-        guard event.getIntegerValueField(.eventSourceUserData) != Self.marker else { return original }
-        if probe {
-            let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
-            onButton?(button); return original
-        }
-        let kind: InputKind
+        let translated: TapEvent
         switch type {
+        case .tapDisabledByTimeout: translated = .disabled(timeout: true)
+        case .tapDisabledByUserInput: translated = .disabled(timeout: false)
         case .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged:
-            kind = .move(Delta(event.getDoubleValueField(.mouseEventDeltaX), event.getDoubleValueField(.mouseEventDeltaY)))
-        case .otherMouseDown: kind = .down(Int(event.getIntegerValueField(.mouseEventButtonNumber)))
-        case .otherMouseUp: kind = .up(Int(event.getIntegerValueField(.mouseEventButtonNumber)))
-        default: return original
+            translated = .input(.move(Delta(event.getDoubleValueField(.mouseEventDeltaX), event.getDoubleValueField(.mouseEventDeltaY))))
+        case .otherMouseDown: translated = .input(.down(Int(event.getIntegerValueField(.mouseEventButtonNumber))))
+        case .otherMouseUp: translated = .input(.up(Int(event.getIntegerValueField(.mouseEventButtonNumber))))
+        default: translated = .unhandled
         }
-        let consumed = onRoute?(Input(kind, at: ProcessInfo.processInfo.systemUptime), { pixels in
+        let consumed = router.receive(translated, marker: event.getIntegerValueField(.eventSourceUserData),
+                                      probe: probe, at: ProcessInfo.processInfo.systemUptime) { pixels in
             guard self.gate.isArmed else { return false }
             guard let scroll = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
                                        wheel1: pixels.vertical, wheel2: pixels.horizontal, wheel3: 0) else {
@@ -103,7 +106,7 @@ final class NativeInput: InputBackend {
             // The wheel type is absent from our mask. No synthetic clicks or pointer warps.
             scroll.tapPostEvent(proxy)
             return true
-        }) ?? false
+        }
         guard gate.isArmed else { return original }
         return consumed ? nil : original
     }
@@ -145,6 +148,7 @@ final class TrackballPresence {
         drain(added, adding: true); drain(removed, adding: false)
     }
     private func drain(_ iterator: io_iterator_t, adding: Bool) {
+        dispatchPrecondition(condition: .onQueue(.main))
         let before = devices
         while case let service = IOIteratorNext(iterator), service != 0 {
             var id: UInt64 = 0

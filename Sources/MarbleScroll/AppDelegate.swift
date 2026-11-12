@@ -6,6 +6,7 @@ import Darwin
 import MarbleCore
 #endif
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let configuration = Configuration()
     private let driver = NativeInput()
@@ -23,19 +24,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var recognitionTimer: Timer?
     private var recognitionDeadline: Double?
     private var probeTimer: Timer?
+    private var probeGeneration = RecoveryGeneration()
+    private var probeTicket: UInt64 = 0
     private var detection = ButtonDetection()
     private var detectionStatus = "Detection is off. Enable it first; tracking will not start automatically."
     private var recoveryWork: DispatchWorkItem?
+    private var recoveryGeneration = RecoveryGeneration()
+    private let access = PermissionSnapshot { AXIsProcessTrusted() }
+    private var loginEnabled = false
     private var observers: [NSObjectProtocol] = []
     private var signals: [DispatchSourceSignal] = []
-    private let liveAllowed = CommandLine.arguments.contains("--allow-live-input")
+    private let liveAllowed = !CommandLine.arguments.contains("--no-live-input")
     private var refreshPending = false
     private lazy var session = Session(settings: settings, systemDoubleClickInterval: NSEvent.doubleClickInterval,
-        backend: driver, permission: { AXIsProcessTrusted() }, device: { [weak self] in self?.presence.connected == true })
+        backend: driver, permission: { [weak self] in self?.permission() == true }, device: { [weak self] in self?.presence.connected == true })
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = configuration.load()
         // Construct the session in disabled state. No tap or permission prompt on launch.
+        _ = permission(force: true)
+        driver.permission = { [weak self] in self?.permission() == true }
         _ = session
         driver.onRoute = { [weak self] input, output in
             guard let self else { return false }
@@ -57,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         for item in [stateItem, deviceItem, .separator(),
                      NSMenuItem(title: "Setup & Status…", action: #selector(showSetup), keyEquivalent: ""), enabledItem,
-                     reverseItem, NSMenuItem(title: "Scroll Speed…", action: #selector(configure), keyEquivalent: ""),
+                     reverseItem, NSMenuItem(title: "Scroll Speed…", action: #selector(configureSpeed), keyEquivalent: ""),
                      NSMenuItem(title: "Configure Button…", action: #selector(configure), keyEquivalent: ""),
                      loginItem, .separator(),
                      NSMenuItem(title: "Emergency Disable", action: #selector(emergency), keyEquivalent: ""),
@@ -71,7 +79,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for (name, reason) in [(NSWorkspace.willSleepNotification, StopReason.sleep),
                                (NSWorkspace.sessionDidResignActiveNotification, .sessionInactive),
                                (NSWorkspace.didWakeNotification, .sleep)] {
-            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.disable(reason) })
+            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.disable(reason) }
+            })
         }
         setupEmergencySignals()
         refresh()
@@ -93,9 +103,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     func applicationWillTerminate(_ notification: Notification) { disable(.terminating); presence.stop() }
     func menuWillOpen(_ menu: NSMenu) {
-        session.permissionChanged()
-        if !AXIsProcessTrusted() { disable(.permissionRevoked) }
-        else if !session.enabled && detection.state != .tracking { driver.gate.emergencyStop() }
+        loginEnabled = SMAppService.mainApp.status == .enabled
+        if !permission(force: true) { disable(.permissionRevoked) }
+        else if detection.shouldDisarmOnMenuOpen(scrollingEnabled: session.enabled) { driver.gate.emergencyStop() }
         refresh()
     }
     private func setupEmergencySignals() {
@@ -118,20 +128,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         recognitionTimer?.invalidate(); recognitionTimer = nil; recognitionDeadline = deadline
         guard let deadline else { return }
         let timer = Timer(timeInterval: max(0.001, deadline - ProcessInfo.processInfo.systemUptime), repeats: false) { [weak self] _ in
-            guard let self else { return }
-            self.recognitionDeadline = nil
-            _ = self.session.handle(Input(.tick, at: ProcessInfo.processInfo.systemUptime))
-            self.scheduleRecognition(); self.refresh()
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.recognitionDeadline = nil
+                _ = self.session.handle(Input(.tick, at: ProcessInfo.processInfo.systemUptime))
+                self.scheduleRecognition(); self.refresh()
+            }
         }
         recognitionTimer = timer; RunLoop.main.add(timer, forMode: .common)
     }
     private func queueFault(timeout: Bool) {
         // Already disarmed in native callback; no interception while this one-shot is pending.
         recoveryWork?.cancel()
+        let ticket = recoveryGeneration.replace()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+            guard self.recoveryGeneration.accepts(ticket) else { return }
             self.recoveryWork = nil
-            if !AXIsProcessTrusted() { self.disable(.permissionRevoked) }
+            if !self.permission(force: true) { self.disable(.permissionRevoked) }
             else {
                 self.session.tapFailed(timeout: timeout)
                 if !self.session.enabled { self.disable(.tapFailure) }
@@ -143,8 +157,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     private func disable(_ reason: StopReason) {
         driver.gate.emergencyStop()
+        _ = recoveryGeneration.replace()
         recoveryWork?.cancel(); recoveryWork = nil
         recognitionTimer?.invalidate(); recognitionTimer = nil; recognitionDeadline = nil
+        _ = probeGeneration.replace()
         probeTimer?.invalidate(); probeTimer = nil
         detection.reset()
         detectionStatus = "Detection is off. Enable it first; tracking will not start automatically."
@@ -167,12 +183,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         deviceItem.title = presence.error ?? (presence.connected ? "Trackball: 046D:C408 connected (global mode)" : "Trackball: disconnected")
         enabledItem.state = session.enabled ? .on : .off
         reverseItem.state = settings.reverse ? .on : .off
-        loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        loginItem.state = loginEnabled ? .on : .off
         let icon = session.enabled ? (state == "Locked scrolling" ? "lock.circle.fill" : "arrow.up.and.down.circle.fill") : "circle.dotted"
         statusItem.button?.image = NSImage(systemSymbolName: icon, accessibilityDescription: "MarbleScroll: \(state)")
         statusItem.button?.toolTip = "MarbleScroll: \(stateItem.title). \(session.stopReason?.rawValue ?? "")"
         setupPanel?.update(enabled: session.enabled, state: state, button: settings.button,
-                           device: presence.connected, permission: AXIsProcessTrusted(),
+                           device: presence.connected, permission: access.cached,
                            liveAllowed: liveAllowed, probing: probeTimer != nil)
         panel?.updateDetection(detection.state, status: detectionStatus)
     }
@@ -188,13 +204,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.activate(ignoringOtherApps: true)
         return alert.runModal() == .alertSecondButtonReturn
     }
+    private func permission(force: Bool = false) -> Bool {
+        access.value(at: ProcessInfo.processInfo.systemUptime, force: force)
+    }
     private func mayUseLiveInput() -> Bool {
         guard liveAllowed else {
-            message("Live input is gated", "This launch cannot create an event tap. After separate approval, launch with --allow-live-input. No permission was requested.")
+            message("Live input is gated", "This launch cannot create an event tap. Restart without --no-live-input only after approval. No permission was requested.")
             return false
         }
         guard presence.connected else { message("Trackball unavailable", "Connect a Logitech 046D:C408 before enabling."); return false }
-        guard AXIsProcessTrusted() else {
+        guard permission(force: true) else {
             message("Accessibility access is needed", "Enable MarbleScroll in System Settings → Privacy & Security → Accessibility, then return here. This macOS permission grants broader control than mouse scrolling. A rebuilt app may need to be removed and added again.", dismissTitle: "Cancel")
             return false
         }
@@ -228,6 +247,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         panel?.update(settings); panel?.showWindow(nil); NSApp.activate(ignoringOtherApps: true)
     }
+    @objc private func configureSpeed() { configure(); panel?.focusSpeed() }
     @objc private func reverse() {
         settings.reverse.toggle(); configuration.save(settings); session.setReverse(settings.reverse); refresh()
     }
@@ -247,14 +267,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         driver.gate.allowExplicitStart()
         do { try driver.startProbe() }
         catch { disable(.tapFailure); message("Button detection unavailable", error.localizedDescription); return }
+        probeTicket = probeGeneration.replace()
+        let ticket = probeTicket
         detectionStatus = "Tracking for 10 seconds: press the physical small button once now."
         let timer = Timer(timeInterval: 10, repeats: false) { [weak self] _ in
-            self?.finishButtonTracking("No button detected. Click Start Tracking to try again.")
+            MainActor.assumeIsolated {
+                guard let self, self.probeGeneration.accepts(ticket) else { return }
+                self.finishButtonTracking("No button detected. Click Start Tracking to try again.")
+            }
         }
         probeTimer = timer; RunLoop.main.add(timer, forMode: .common)
         refresh()
     }
     private func finishButtonTracking(_ status: String) {
+        _ = probeGeneration.replace()
         driver.gate.emergencyStop()
         probeTimer?.invalidate(); probeTimer = nil
         session.stop(.disabled)
@@ -263,8 +289,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func detected(_ button: Int) {
         // No modal UI or preference write inside event callback.
         driver.gate.disarm()
+        let ticket = probeTicket
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
+            guard let self, self.probeGeneration.accepts(ticket), self.detection.state == .tracking else { return }
             self.finishButtonTracking("Tracking finished. Review the detected button below; Start Tracking is available again.")
             guard (2...31).contains(button) else { return }
             self.panel?.showDetectedButton(button)
@@ -276,12 +303,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if SMAppService.mainApp.status == .enabled { try SMAppService.mainApp.unregister() }
             else if consent("Launch MarbleScroll at login?", "Register the current app with macOS Login Items. Scrolling will still be disabled at every launch.") { try SMAppService.mainApp.register() }
         } catch { message("Login startup unchanged or pending", error.localizedDescription) }
+        loginEnabled = SMAppService.mainApp.status == .enabled
         refresh()
     }
     @objc private func emergency() { disable(.emergency) }
     @objc private func quit() { disable(.terminating); NSApp.terminate(nil) }
     @objc private func about() {
-        disable(.disabled)
         message("MarbleScroll 0.1.0", "MIT License · © 2026 Kaushik Ruparel\nBehavioral inspiration: DragScroll by Emre Yolcu. Independently written Swift; no DragScroll input/recovery code copied.\nGlobal fallback, no networking or keyboard tap. Physical acceptance testing pending.")
     }
 }
