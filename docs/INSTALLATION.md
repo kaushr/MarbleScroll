@@ -1,40 +1,40 @@
-# Build and permission setup
+# Build, permissions and optional installation
 
-This phase delivered a locally built app only. No installation, app UI launch, permission grant, live interception or login registration was performed. Binary releases are not published.
+Current observations and outstanding tests are in [STATUS.md](STATUS.md). Supervised global-mode/Accessibility testing is approved for this session; installation, login startup and binary releases have not been performed.
 
-## Build from source
+## Build from reviewed source
 
-On an Apple Silicon Mac with Apple's Command Line Tools (Swift 6.1 or later) or full Xcode:
+Apple Silicon, macOS 15 or later, Swift 6.1+ via Command Line Tools or Xcode:
 
 ```sh
 ./scripts/test.sh
 ./scripts/build.sh
 ```
 
-The build writes `build/MarbleScroll.app` and logs under `build/`. It uses native frameworks only, targets arm64/macOS 15.0 and later, and signs the bundle ad-hoc with hardened runtime. There is no dependency download, install script, launch or permission request. No paid Apple Developer account is needed. Build/cache directories are ignored by Git.
+Output: `build/MarbleScroll.app`; native frameworks only, no package downloads. Scripts compile/test/package/sign; they never install, launch, grant permissions or configure login startup. Logs/caches/build products are ignored by Git. SwiftPM's manifest sandbox is enabled by default. On a restricted authoring host that cannot nest it, explicitly opt in to `MARBLESCROLL_SWIFTPM_DISABLE_SANDBOX=1`; no OS setting is changed. Prefer normal sandboxing outside that host.
 
-The scripts use project-local SwiftPM caches. SwiftPM's manifest sandbox is disabled for this nested restricted development host; this does not change OS settings. Review the dependency-free local `Package.swift` before running. A standard `MarbleScroll.xcodeproj` and shared app scheme are also included; the scheme has no live-input argument. Mock tests run with `swift test`, rather than an empty Xcode test target.
+The Xcode project and shared scheme compile the same source in Swift 6. The macOS workflow runs mock tests, a SwiftPM arm64 build and an actual Xcode Release arm64 build. It launches no app and publishes no binaries. Local Command Line Tools alone cannot run `xcodebuild`; see current CI evidence in STATUS.md. Do not switch developer directories or download tools automatically.
 
-The active developer directory on the implementation host was Command Line Tools. `xcodebuild` therefore could not validate the project through Xcode's build engine. Project/plist syntax and the same-module source configuration can be checked independently; see [build results](BUILD_RESULTS.md). Full Xcode validation remains outstanding; do not change the selected developer directory automatically.
+Default signing is ad-hoc. To deliberately use an **existing** code-signing identity:
 
-## Install and launch — only after separate approval
+```sh
+MARBLESCROLL_SIGNING_IDENTITY='Your existing identity' ./scripts/build.sh
+```
 
-1. Complete the manual test approval and review [scope and permissions](SECURITY.md). Keep an independent pointer/Terminal available.
-2. If approved to install, copy your locally built app to a stable location such as `~/Applications/MarbleScroll.app`. Moving/rebuilding may change TCC identity; use a fixed bundle for testing.
-3. A normal Finder launch stays disabled and cannot create a tap. It does not request permission. This is useful for UI inspection once app launch is approved.
-4. After approval for the broader Accessibility grant, add **that exact bundle** manually in System Settings → Privacy & Security → Accessibility. This authority is broader than mouse-only access. Do not add Terminal/Xcode/Codex instead; do not grant Full Disk Access or Screen Recording.
-5. Only after live input testing is approved, launch that fixed bundle with:
+The script creates no certificate and changes no Keychain trust. No valid signing identity was found on the implementation host. Ad-hoc rebuilds can invalidate Accessibility grants even when System Settings still shows the old entry on. A stable identity/designated requirement may help, but its behavior must be verified. No paid account is required for the default local build.
 
-   ```sh
-   open "$HOME/Applications/MarbleScroll.app" --args --allow-live-input
-   ```
+## Approved supervised launch
 
-6. Open Configure Button. Check Enable Button Detection, which makes Start Tracking available without monitoring yet. Click Start Tracking, press the chosen small button once within ten seconds, select Use Detected Button, then Save. Observation is global and passes through; never assume particular physical numbers. Cancel/Escape discards edits and stops tracking. Setup & Status has Close/Escape to dismiss only that window.
-7. Review the global filtering disclosure and choose Scrolling Enabled. That control enables directly; no extra session popup appears. Uncheck it to disable. Reverse Direction sits immediately below it and flips both axes without switching scrolling off. Trackball presence is required, but another pointer can still drive scrolling. Restart and safety failures reset activation; login startup remains off unless separately authorized.
-8. If tap creation is denied or macOS requires Input Monitoring, stop. This version does not ask for that extra permission; review and obtain separate approval. Do not run as root or use a private API/warp workaround.
+1. Use a fixed local bundle; keep an independent pointer and Terminal recovery command available. Do not install merely to test. Installation to `~/Applications` is a separate user action after approval.
+2. Launch normally using Finder or `open /absolute/path/MarbleScroll.app`. It starts disabled/NORMAL, creates no tap and requests no permission. The old --allow-live-input argument is no longer required. For UI-only inspection, `open /absolute/path/MarbleScroll.app --args --no-live-input` refuses all tap starts.
+3. With the broader permission risk approved, add **that exact bundle** manually in System Settings → Privacy & Security → Accessibility. Never grant unrelated Terminal/Xcode/Codex permissions, Full Disk Access or Screen Recording. If a rebuilt bundle is no longer recognized, quit it and remove/re-add only its stale entry manually. No TCC database reset/edit is needed.
+4. Open Configure Button. Check Enable Button Detection (readiness only), then click Start Tracking. Press the small physical button **once** within ten seconds, choose Use Detected Button, then Save. Detection observes global secondary-button downs and passes clicks through; existing button actions may still happen. No button numbering is assumed. Cancel/Escape discards edits and stops tracking.
+5. Review the global-mode disclosure and choose Scrolling Enabled. This directly activates without another popup, subject to device/button/AX eligibility. Uncheck it to disable. Reverse Direction flips both axes without disabling. Setup & Status Close/Escape only dismisses that window.
+6. Perform the **pointer stability gate first**, then the remaining [hardware procedure](HARDWARE_TESTING.md). Restart, disconnect, sleep and nonrecoverable faults require explicit re-enable. There is no automatic lock restoration.
+7. If Input Monitoring is requested/required, stop for separate approval. Do not grant extra permissions, run as root or weaken security to bypass a failing tap.
 
-Launch at Login is optional and off by default. Register it only through the explicit menu action after approval and stable installation; system confirmation may be required. Even a login launch stays disabled and has no live-input argument. Login startup does not imply permission to enable filtering.
+Launch at Login is optional and never enabled automatically. During this supervised test it must remain disabled. When separately approved after stable installation, its explicit menu action registers the current app with ServiceManagement. A login launch starts disabled; normal controls work without terminal arguments. Login registration itself has not been hardware tested.
 
-## Signing and launch restrictions
+## Distribution restrictions
 
-Ad-hoc signing is local integrity signing, not Developer ID/notarization. A downloaded build may encounter Gatekeeper restrictions; no such binary is distributed here. Prefer rebuilding source locally. If using full Xcode with a free personal development identity, select it deliberately and record the resulting signature; no team/keychain identity was provisioned here. Do not disable Gatekeeper, remove quarantine automatically or change security settings. Record the exact failure and use supported macOS user approval only after the user authorizes it.
+Ad-hoc signing supplies local integrity, not a verified publisher or notarization. No release binary is published. Prefer building reviewed source locally; do not disable Gatekeeper, remove quarantine automatically or change security settings. Record any exact launch failure and use supported user approval only when authorized.

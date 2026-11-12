@@ -2,7 +2,7 @@
 
 A small native Swift macOS menu-bar utility for button-controlled trackball scrolling. MIT licensed; no packages, network services, telemetry, updater, privileged helper or keyboard interception.
 
-**Status: compiled prototype; automated mocks tested; supervised hardware validation in progress.** See [actual observations and pending checks](docs/HARDWARE_RESULTS.md). Normal launches do not intercept input. An unconfigured launch shows Setup & Status to detect the physical button before enabling. Live operation requires `--allow-live-input`, an explicit enable action, the visible global-mode disclosure, a configured secondary button, a connected `046D:C408` trackball and an existing Accessibility grant. No permission request is made automatically.
+**Status: compiled prototype; automated mocks tested; supervised hardware validation in progress.** See [actual observations and pending checks](docs/STATUS.md). Normal launches do not intercept input. An unconfigured launch shows Setup & Status to detect the physical button before enabling. Live operation requires an explicit enable action, the visible global-mode disclosure, a configured secondary button, a connected `046D:C408` trackball and an existing Accessibility grant. No permission request is made automatically.
 
 - Hold the chosen small button and roll to scroll on two axes; release to restore pointer movement.
 - Double-click the same button to lock; single-click to unlock.
@@ -10,9 +10,9 @@ A small native Swift macOS menu-bar utility for button-controlled trackball scro
 - Menu disable, SIGUSR1 emergency disable, lifecycle cancellation and bounded tap recovery.
 - Build for Apple Silicon, minimum macOS 15.0; target environment Sequoia 15.7.8.
 
-**Device limitation:** VID/PID presence is checked, but the Core Graphics fallback filters the global mouse stream. It cannot reliably attribute movement to the trackball. It is never enabled without explicit consent. No HID device is seized. Pointer stability and fail-open behavior are implemented but require physical acceptance testing before normal use.
+**Device limitation:** VID/PID presence is checked, but the Core Graphics fallback filters the global mouse stream. It cannot reliably attribute movement to the trackball. It is never enabled without explicit consent. No HID device is seized. The intended pointer suppression and OS fail-open behavior still require physical acceptance testing before normal use. Pointer freeze is the first acceptance gate.
 
-See [architecture and isolation trade-offs](docs/ARCHITECTURE.md), [security design](docs/SECURITY.md), [threat model](docs/THREAT_MODEL.md), [test results](docs/TEST_RESULTS.md), [build results](docs/BUILD_RESULTS.md), [mock performance measurements](docs/PERFORMANCE.md), [build/install/permissions](docs/INSTALLATION.md), [manual hardware test](docs/HARDWARE_TESTING.md), and [troubleshooting/removal](docs/TROUBLESHOOTING.md).
+See [architecture and isolation trade-offs](docs/ARCHITECTURE.md), [security design](docs/SECURITY.md), [threat model](docs/THREAT_MODEL.md), [current build, test and hardware status](docs/STATUS.md), [build/install/permissions](docs/INSTALLATION.md), [manual hardware test](docs/HARDWARE_TESTING.md), and [troubleshooting/removal](docs/TROUBLESHOOTING.md).
 
 ```sh
 ./scripts/test.sh

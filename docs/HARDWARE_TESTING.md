@@ -1,6 +1,6 @@
 # Physical T-BC21 acceptance procedure — approval required
 
-**Functional acceptance pending.** The user has approved supervised testing, global mode and Accessibility; partial observations are recorded in [hardware results](HARDWARE_RESULTS.md). Button mapping and scrolling have not passed yet. Automated tests use fake events/backends only. The USB registry read confirms `046D:C408`; it does not test buttons, scrolling or recovery. Do not run DragScroll during these tests. Keep login startup disabled and do not publish a binary release.
+**Functional acceptance pending.** The user has approved supervised testing, global mode and Accessibility; partial observations are recorded in [current status](STATUS.md). CG button 3 was saved and the user reported working behavior; pointer freeze, each interaction case and active recovery have not been independently verified. Automated tests use fake events/backends only. The USB registry read confirms `046D:C408`; it does not test buttons, scrolling or recovery. Do not run DragScroll during these tests. Keep login startup disabled and do not publish a binary release.
 
 ## Preparation and recovery
 
@@ -13,9 +13,21 @@
 ## Device and button mapping
 
 1. Confirm the connected device VID/PID and product label. Record whether any other pointer/remapper is present.
-2. Launch with the explicit live-input argument. An unconfigured app shows Setup & Status automatically; it can also be reopened from the menu or with `--show-setup`. Open Configure Button, check Enable Button Detection, and verify that no monitoring has started. Click Start Tracking when ready, then press one physical small button within ten seconds. Review the inline zero-based CG/one-based number, choose Use Detected Button, then Save. Repeat if desired. Stop Tracking, Cancel, Escape or closing must stop detection. The detector passes clicks through; press once to avoid the button's usual double-click action.
+2. Launch normally; the old live-input argument is no longer required. Do not use --no-live-input for physical tests. An unconfigured app shows Setup & Status automatically; it can also be reopened from the menu or with `--show-setup`. Open Configure Button, check Enable Button Detection, and verify that no monitoring has started. Click Start Tracking when ready, then press one physical small button within ten seconds. Review the inline zero-based CG/one-based number, choose Use Detected Button, then Save. Repeat if desired. Stop Tracking, Cancel, Escape or closing must stop detection. The detector passes clicks through; press once to avoid the button's usual double-click action.
 3. Select the intended button; other buttons must remain functional. Primary buttons 0/1 cannot be configured.
 4. Disconnect the trackball: enable/detect must refuse. Reconnect: scrolling must stay off until explicitly enabled again.
+
+## First gate: pointer stability and stable scroll target
+
+Before any broad application or active-failure testing:
+
+1. Prepare Terminal emergency disable/termination for the verified app PID. Keep login startup off.
+2. Open the local `Tests/Fixtures/ScrollSurface.html` in a browser. It has two-axis overflow, transient pointer/wheel counters and no network, keyboard listener or persistence. Place the visible cursor on a distinctive fixed point **inside** the scrollable pane, away from an edge or another target.
+3. Enable scrolling. Hold the configured small button and roll vertically, horizontally and diagonally. Confirm the actual visible pointer stays at that screen position and the same pane scrolls. Pointer-event counters alone are insufficient: dropping a delivered event might hide application notifications while the system cursor still moves.
+4. Release: ordinary movement must return immediately. Then test double-click lock, release and continued rolling; the same stationary-pointer rule applies. One click must unlock.
+5. Record actual pass/fail, build digest and observation method. If pointer or target drifts, **disable and stop**. The current backend has failed its core requirement; do not continue acceptance or silently add warp/disassociation. Review a replacement recovery design first.
+
+Apple's [cursor-control documentation](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/QuartzDisplayServicesConceptual/Articles/MouseCursor.html) describes disassociation and warping but does not establish this tap's drop-event ordering. Hardware evidence is required.
 
 ## Interaction matrix
 
@@ -53,7 +65,7 @@ Run one scenario at a time with Terminal recovery prepared:
 - Send SIGUSR1 during each mode, including near a timer/recovery boundary: port invalidates and remains inhibited. One already in-flight event may race; sustained interception after disable is a failure.
 - Disconnect while pressed/locked; reconnect: ordinary input restored and scrolling remains disabled.
 - Sleep/wake, lock/switch session: state cancelled, no auto-enable or stale click sequence.
-- Revoke Accessibility while active **only after explicit approval for this safety test**: the next event must pass and the app must disable; an idle revoke may be noticed at the next event/menu check. If the OS stops delivering callbacks, the tap must already cease filtering. Stop on any deviation; do not repeatedly reproduce a loss of input.
+- Revoke Accessibility while active **only after explicit approval for this safety test**: once the permission snapshot revalidates (within 250 ms of active input), the event must pass and the app must disable; an idle revoke may be noticed at the next event/menu check. If the OS stops delivering callbacks, the tap must already cease filtering. Stop on any deviation; do not repeatedly reproduce a loss of input.
 - Terminate with SIGTERM and, in a separately approved crash-recovery test, SIGKILL while pressed/locked: normal pointer must remain functional after OS process teardown. Restart must be disabled/NORMAL.
 - Timeout/creation/allocation failures are mock-tested. Do not hang the main thread or inject native faults in a live session without an additional reviewed test harness. Native timeout behavior is therefore still an explicit manual validation gap.
 
