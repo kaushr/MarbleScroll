@@ -23,8 +23,10 @@ Output: `build/MarbleScroll.app`. Building does not install, launch, grant permi
 
 ## Attribution
 
-[DragScroll by Emre Yolcu](https://github.com/emreyolcu/drag-scroll) and [Kaushik's reference fork](https://github.com/kaushr/drag-scroll) informed the behavioral idea of turning trackball X/Y deltas into two-axis scrolling while a button mode is active. The fork preserves the [completed static security audit](https://github.com/kaushr/drag-scroll/blob/48fabc0/docs/SECURITY_AUDIT.md), covering source commit `879bd0e6f4f1aae239364c5e7e49f19746729993` (also the fork's reference implementation at audit time).
+[DragScroll by Emre Yolcu](https://github.com/emreyolcu/drag-scroll) informed the behavioral idea of turning trackball X/Y deltas into two-axis scrolling while a button mode is active.
 
-MarbleScroll is an independent repository with fresh history. No DragScroll source, event-handling implementation, cursor-warp/suppression technique, recovery code, build configuration, or binaries were copied. The hold/double-click state machine, safety architecture, UI and tests are new. DragScroll is MIT licensed; its original source/license remain in the reference fork.
+The [completed static security audit](https://github.com/kaushr/drag-scroll/blob/48fabc0/docs/SECURITY_AUDIT.md) covers DragScroll source commit `879bd0e6f4f1aae239364c5e7e49f19746729993`. See [reference provenance](docs/REFERENCE_AUDIT.md) for the audit record.
+
+MarbleScroll is an independent repository with fresh history. No DragScroll source, event-handling implementation, cursor-warp/suppression technique, recovery code, build configuration, or binaries were copied. The hold/double-click state machine, safety architecture, UI and tests are new. DragScroll is MIT licensed.
 
 Copyright 2026 Kaushik Ruparel. See [MIT license](LICENSE).

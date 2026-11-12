@@ -10,6 +10,6 @@ Audit preserved in fork: https://github.com/kaushr/drag-scroll/blob/48fabc0/docs
 
 Only `docs/SECURITY_AUDIT.md` was added to that fork; its existing code was unchanged. The original audit was also preserved at `../docs/SECURITY_AUDIT.md` in the local parent workspace. No upstream files were modified. New MarbleScroll source lives solely in this independent directory/repository.
 
-Behavioral influence: button-activated trackball scrolling, two axes and user speed/direction preferences. No literal source, event tap setup, permission recovery, cursor warping or local suppression logic was reused. MIT attribution is acknowledgment of influence, not a claim that this implementation shares tested safety characteristics with DragScroll.
+Behavioral influence from Emre Yolcu’s upstream DragScroll: button-activated trackball scrolling, two axes and user speed/direction preferences. The unchanged implementation in the reference fork is audit provenance, not a separate source of behavioral influence. No literal source, event tap setup, permission recovery, cursor warping or local suppression logic was reused. MIT attribution is acknowledgment of influence, not a claim that this implementation shares tested safety characteristics with DragScroll.
 
-The prior high operational risk gate was explicitly approved for Option B development. New native input handling still requires separate permission/live-test approval.
+The prior high operational risk gate was explicitly approved for Option B development. Supervised T-BC21 testing with the global fallback and Accessibility was subsequently approved. Physical acceptance remains incomplete; launch at login stays disabled and binary releases are not authorized.

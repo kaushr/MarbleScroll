@@ -82,3 +82,9 @@ These are dated older-build observations, not a completed acceptance matrix:
 8. Login startup remains off and untested. Normal launches no longer need a terminal flag but always require explicit enable; --no-live-input provides inert UI diagnostics. No release readiness is claimed.
 
 Do not enable continuous daily use or publish a binary until the physical gates pass. Keep the separate reference audit intact and label every new result with exact source/build, permissions, app/version and actual observation.
+
+## Resumed check after Git reconciliation
+
+Fetched origin and verified local HEAD, origin/main and GitHub main all at 839286be480e40c2ba4e19a8ab15ca5718314566, with a clean working tree, zero commits ahead/behind and no stashes. CI for that exact revision also passed: [run 43163878754](https://github.com/kaushr/MarbleScroll/actions/runs/43163878754).
+
+The existing regular-bundle process (PID 6746, older c71bea6 artifact) was still running. Native Setup & Status showed **Scrolling disabled**, saved CG button 3, trackball not detected and Accessibility missing. The user is away from the trackball, so physical testing is deferred. No process was stopped/restarted, no candidate was launched and no permission or login setting was changed during this check. This is an older-build UI observation, not current-candidate acceptance.
