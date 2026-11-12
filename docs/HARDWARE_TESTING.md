@@ -13,13 +13,13 @@
 ## Device and button mapping
 
 1. Confirm the connected device VID/PID and product label. Record whether any other pointer/remapper is present.
-2. Launch with the explicit live-input argument. An unconfigured app shows Setup & Status automatically; it can also be reopened from the menu or with `--show-setup`. Click Detect Small Button, accept the observation dialog, then press one physical small button within ten seconds; record zero-based CG and one-based display values and confirm Use Button. Repeat for the other small button if desired. Detector must leave ordinary clicking intact and stop after one observation/timeout.
+2. Launch with the explicit live-input argument. An unconfigured app shows Setup & Status automatically; it can also be reopened from the menu or with `--show-setup`. Open Configure Button, check Enable Button Detection, and verify that no monitoring has started. Click Start Tracking when ready, then press one physical small button within ten seconds. Review the inline zero-based CG/one-based number, choose Use Detected Button, then Save. Repeat if desired. Stop Tracking, Cancel, Escape or closing must stop detection. The detector passes clicks through; press once to avoid the button's usual double-click action.
 3. Select the intended button; other buttons must remain functional. Primary buttons 0/1 cannot be configured.
 4. Disconnect the trackball: enable/detect must refuse. Reconnect: scrolling must stay off until explicitly enabled again.
 
 ## Interaction matrix
 
-After enabling with explicit global consent, verify each item and record pass/fail:
+After enabling with the explicit Scrolling Enabled control and reviewing its global-mode disclosure, verify each item and record pass/fail. There is no repeated session-confirmation popup:
 
 | Test | Expected |
 | --- | --- |

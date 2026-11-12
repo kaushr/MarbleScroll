@@ -35,8 +35,28 @@ New executable SHA-256:
 
 ## Pending physical acceptance
 
-Button detection is awaiting the user's physical action. The small-button CG number has **not** been established. The detector's permission/creation and timeout paths have been observed, but that does not establish receipt of real trackball button events. Hold-to-scroll, double-click lock, single-click unlock, stationary cursor, actual wheel delivery, active-mode emergency recovery, permission revocation, KVM/disconnect, sleep/wake, native CPU/memory and cross-application behavior remain **unverified**.
+The user subsequently reported “works” / “worked.” Reading MarbleScroll's own saved preferences confirmed **CG button 3**, and native metadata showed an enabled modifying HID-entry tap with mask `0x0e0000e0`. This supports successful user setup and native tap activation. The user suspected an existing double-click action on button 3 had caused the earlier issue; that cause has not been independently established, and no OS button binding was changed.
+
+Individual hold/release, lock/unlock, stationary-pointer, cross-application and active failure-recovery cases have not been separately observed or measured by the agent. KVM/disconnect, sleep/wake and enabled native performance remain pending acceptance checks. The reported working behavior must not be expanded into a completed per-application or crash/revocation safety test matrix.
 
 The local scroll fixture `Tests/Fixtures/ScrollSurface.html` provides two-axis overflow and transient pointer/wheel/scroll counters for the next test. It has no network requests, keyboard listeners or persistent storage. It has not yet produced a hardware result.
 
 Do not interpret setup/permission success or mock tests as a physical scrolling pass. Follow [hardware testing](HARDWARE_TESTING.md) and record actual outcomes before continuous use or any binary release.
+
+## UX follow-up
+
+At the user's request, detection now lives in Configure Button: an unchecked **Enable Button Detection** option first makes **Start Tracking** available; only that second click starts observation. The detected button appears inline for explicit selection and Save. Unchecking, Stop Tracking, timeout, closing or cancelling stops tracking. The choice is not persisted. During detection, clicks pass through, so the UI asks for a single press rather than a double-click.
+
+Settings now has Cancel and Escape, both discarding draft edits. Setup & Status is retained and has a separate Close/Escape control that only dismisses the window, leaving the menu-bar app running. Scrolling Enabled starts directly without the repeated session popup; Reverse Direction is immediately below it and changes both axes without disabling the session. Ordinary restart and safety failures still reset activation.
+
+Verified against the preceding `bbce37f` build using native UI:
+
+- Changed speed from 2.0 to 7.0, clicked Cancel, reopened settings: speed remained 2.0. Escape also closed settings.
+- The missing-Accessibility notice had a Cancel button and dismissed without enabling.
+- Checking detection displayed Ready and enabled Start Tracking; read-only tap metadata remained empty. The separate Start click displayed Tracking; Cancel closed the window and returned to Normal/Disabled.
+- Enable Scrolling went directly to Enabled without a popup; the next click disabled it.
+- Saved button 3 remained intact. No login startup or binary release was configured.
+
+Final Close-button build: source commit `c71bea660d10d3a03c2b406d7133bf8fdbecf07a`, executable SHA-256 `aa3b4fab543166db16cca940e7e877ab203a91156e991598aa1c84b994af976f`. Release arm64 compilation and strict signature verification pass. The core suite has **84 passing tests**, including two-step detection cancellation/rearm and live reverse-direction state/residual handling.
+
+The Mac locked during the final build's Accessibility-entry refresh; completion of that refresh and the final Setup Close/Escape UI check are pending user unlock. A locally retained previous build is under ignored `build/PreviousWorking/`; only the main build path should be launched to avoid ambiguous bundle-ID lookup. App stops during these updates were deliberate verified-process SIGTERM operations, not observed crashes.

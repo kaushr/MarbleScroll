@@ -4,7 +4,7 @@ Date: November 11, 2026. Host: Apple Silicon, macOS 15.7.8 (24G824), Swift 6.1.2
 
 Command: `./scripts/test.sh`.
 
-**Result: 74 tests passed, zero failures.** Final run reported 0.016 seconds of test execution (compilation is separate). The parameterized stop-reason test exercises eight reason variants. All tests use mock events, fake eligibility and a fake backend/token; none creates a native event tap, opens HID input, requests TCC permissions or launches the menu UI. Build/test commands did not install the app, register login startup or change security settings.
+**Current result: 84 tests passed, zero failures.** Final run reported 0.016 seconds of test execution (compilation is separate). The parameterized stop-reason test exercises eight reason variants. All tests use mock events, fake eligibility and a fake backend/token; none creates a native event tap, opens HID input, requests TCC permissions or launches the menu UI. Build/test commands did not install the app, register login startup or change security settings.
 
 | Required case | Automated evidence |
 | --- | --- |
@@ -34,4 +34,7 @@ Tests assert the production pure state machine, `Session.route`, lifecycle owner
 
 The first UI compile found an ambiguous Swift String conversion, which was corrected. An early unrelated-button test supplied backwards timestamps and correctly triggered the state machine's fail-open reset; the fixture was corrected to monotonic timestamps. The final result above includes these corrections and the later routing/latch tests.
 
-Native UI, T-BC21 button mapping, pointer stability, other-mouse interaction, permission revocation, crash recovery and cross-application behavior remain **not tested**. Use the separate approved [manual procedure](HARDWARE_TESTING.md). Performance is reported separately and labeled as mock-only.
+Native UI and user-reported button setup/operation are recorded in HARDWARE_RESULTS.md. Quantified pointer stability, other-mouse interaction, active permission revocation, crash recovery and the cross-application matrix remain **not independently verified**. Use the separate approved [manual procedure](HARDWARE_TESTING.md). Performance is reported separately and labeled as mock-only.
+
+
+Latest additions: eight tests cover disabled/ready/tracking detection transitions, separate start, duplicate-start rejection, timeout readiness, cancellation and stale completion; two tests cover reversing an enabled locked session without backend teardown and clearing fractional residuals. The native Cancel/discard, Escape, permission Cancel, no-tap readiness and direct toggle checks are recorded separately in HARDWARE_RESULTS.md.

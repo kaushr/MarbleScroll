@@ -2,7 +2,7 @@
 
 A small native Swift macOS menu-bar utility for button-controlled trackball scrolling. MIT licensed; no packages, network services, telemetry, updater, privileged helper or keyboard interception.
 
-**Status: compiled prototype; automated mocks tested; supervised hardware validation in progress.** See [actual observations and pending checks](docs/HARDWARE_RESULTS.md). Normal launches do not intercept input. An unconfigured launch shows Setup & Status to detect the physical button before enabling. Live operation requires `--allow-live-input`, an explicit enable action, per-session global-scope consent, a configured secondary button, a connected `046D:C408` trackball and an existing Accessibility grant. No permission request is made automatically.
+**Status: compiled prototype; automated mocks tested; supervised hardware validation in progress.** See [actual observations and pending checks](docs/HARDWARE_RESULTS.md). Normal launches do not intercept input. An unconfigured launch shows Setup & Status to detect the physical button before enabling. Live operation requires `--allow-live-input`, an explicit enable action, the visible global-mode disclosure, a configured secondary button, a connected `046D:C408` trackball and an existing Accessibility grant. No permission request is made automatically.
 
 - Hold the chosen small button and roll to scroll on two axes; release to restore pointer movement.
 - Double-click the same button to lock; single-click to unlock.

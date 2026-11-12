@@ -29,8 +29,8 @@ The active developer directory on the implementation host was Command Line Tools
    open "$HOME/Applications/MarbleScroll.app" --args --allow-live-input
    ```
 
-6. Use Detect Button to identify the chosen physical small button. The temporary observation is global, passes through and stops after one secondary down or ten seconds. Confirm the shown zero-based CG number; never assume both physical small buttons have particular numbers. Enter a verified number in settings if observation is unavailable.
-7. Choose Scrolling Enabled and explicitly accept the global filtering disclosure. Trackball presence is required, but another pointer can still drive active scrolling. Every app restart needs fresh enable/consent.
+6. Open Configure Button. Check Enable Button Detection, which makes Start Tracking available without monitoring yet. Click Start Tracking, press the chosen small button once within ten seconds, select Use Detected Button, then Save. Observation is global and passes through; never assume particular physical numbers. Cancel/Escape discards edits and stops tracking. Setup & Status has Close/Escape to dismiss only that window.
+7. Review the global filtering disclosure and choose Scrolling Enabled. That control enables directly; no extra session popup appears. Uncheck it to disable. Reverse Direction sits immediately below it and flips both axes without switching scrolling off. Trackball presence is required, but another pointer can still drive scrolling. Restart and safety failures reset activation; login startup remains off unless separately authorized.
 8. If tap creation is denied or macOS requires Input Monitoring, stop. This version does not ask for that extra permission; review and obtain separate approval. Do not run as root or use a private API/warp workaround.
 
 Launch at Login is optional and off by default. Register it only through the explicit menu action after approval and stable installation; system confirmation may be required. Even a login launch stays disabled and has no live-input argument. Login startup does not imply permission to enable filtering.

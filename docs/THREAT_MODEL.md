@@ -1,5 +1,7 @@
 # MarbleScroll threat model
 
+This is the retained model for the implementation revision named below. Subsequent user-requested UI changes (two-step detection, direct enable control, Cancel/Close and live reverse) and native test evidence are described in ARCHITECTURE.md and HARDWARE_RESULTS.md; source line anchors here refer to the historical revision.
+
 ## Overview
 
 Implementation reviewed: `97638e97c052780fe46af5135b55abe4025c5173`. Independent architecture review plus parent verification; static review and mock tests only. Final follow-up changes measure self resident memory in mock mode and use Session.route for the benchmark; input/recovery behavior is unchanged. New Swift source, no DragScroll event handling or recovery reuse.

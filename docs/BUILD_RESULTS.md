@@ -35,3 +35,8 @@ SHA-256 of that executable:
 Rebuilds/toolchain changes may alter bytes/signing identity. Logs (`build/tests.log`, `build/build.log`, `build/xcodebuild.log`, `build/same-module-build.log`, `build/signature.log`, `build/mock-benchmark.log`) remain local and are ignored by Git. `build/` and `.build/` contain no source of record.
 
 The locally built executable was run only with `--mock-benchmark`, which branches before native UI/IOKit/tap initialization. No app was installed or run with live interception, no TCC grant was made, and no login item or macOS security setting was changed. Binary artifacts are not committed or published as a release.
+
+
+## Latest UX build
+
+The historical artifact above is superseded locally by source c71bea660d10d3a03c2b406d7133bf8fdbecf07a. Release arm64 compilation and strict ad-hoc signature verification pass. The executable SHA-256 is aa3b4fab543166db16cca940e7e877ab203a91156e991598aa1c84b994af976f. The Xcode project includes all eleven Swift implementation files. The current core suite has 84 passing tests. See HARDWARE_RESULTS.md for native UI observations and the pending final permission refresh. No binary release was published.
