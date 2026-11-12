@@ -1,6 +1,6 @@
 # Physical T-BC21 acceptance procedure — approval required
 
-**Not performed.** Automated tests use fake events/backends only. The earlier USB registry read confirmed `046D:C408`; it did not test buttons, scrolling or recovery. Obtain separate approval before app UI launch, installation, permissions or live filtering. Do not run DragScroll during these tests.
+**Functional acceptance pending.** The user has approved supervised testing, global mode and Accessibility; partial observations are recorded in [hardware results](HARDWARE_RESULTS.md). Button mapping and scrolling have not passed yet. Automated tests use fake events/backends only. The USB registry read confirms `046D:C408`; it does not test buttons, scrolling or recovery. Do not run DragScroll during these tests. Keep login startup disabled and do not publish a binary release.
 
 ## Preparation and recovery
 
@@ -13,7 +13,7 @@
 ## Device and button mapping
 
 1. Confirm the connected device VID/PID and product label. Record whether any other pointer/remapper is present.
-2. Launch with the explicit live-input argument, then use the ten-second button detector only after its global-observation dialog. Press one physical small button; record zero-based CG and one-based display values. Repeat for the other small button. Detector must leave ordinary clicking intact and stop after one observation/timeout.
+2. Launch with the explicit live-input argument. An unconfigured app shows Setup & Status automatically; it can also be reopened from the menu or with `--show-setup`. Click Detect Small Button, accept the observation dialog, then press one physical small button within ten seconds; record zero-based CG and one-based display values and confirm Use Button. Repeat for the other small button if desired. Detector must leave ordinary clicking intact and stop after one observation/timeout.
 3. Select the intended button; other buttons must remain functional. Primary buttons 0/1 cannot be configured.
 4. Disconnect the trackball: enable/detect must refuse. Reconnect: scrolling must stay off until explicitly enabled again.
 

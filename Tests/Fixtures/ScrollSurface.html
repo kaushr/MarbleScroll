@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>MarbleScroll local hardware test</title>
+<style>
+body{font:16px system-ui;margin:24px;background:#f5f7fa;color:#18212d}h1{font-size:24px}
+#stats{padding:14px;background:white;border:1px solid #ccd4de;white-space:pre-wrap}
+#surface{height:65vh;overflow:scroll;background:white;border:3px solid #345f99;margin-top:18px}
+#content{width:2600px;background:repeating-linear-gradient(90deg,#fff 0,#fff 199px,#dfeaf8 200px,#dfeaf8 400px)}
+.row{height:56px;border-bottom:1px solid #bbc8d8;padding:8px;box-sizing:border-box}
+button{font:inherit;padding:8px 14px;margin:10px 8px 0 0}
+</style>
+<h1>MarbleScroll — local physical-input test</h1>
+<p>Put the pointer inside the blue border. This fixture scrolls on both axes. It has no network requests,
+keyboard listeners or persistent storage. Mouse/scroll counters remain in this tab only.</p>
+<pre id="stats" aria-live="off"></pre>
+<button id="reset">Reset counters and position</button><button id="center">Center scroll position</button>
+<div id="surface" tabindex="0"><div id="content"></div></div>
+<script>
+const surface=document.querySelector('#surface'), content=document.querySelector('#content'), stats=document.querySelector('#stats');
+for(let i=0;i<160;i++){const row=document.createElement('div');row.className='row';row.textContent=`Row ${String(i).padStart(3,'0')}     ← horizontal scroll test — move across the shaded columns →`;content.append(row)}
+let moves=0,wheels=0,lastX=null,lastY=null,lastDX=0,lastDY=0;
+function render(){stats.textContent=`Scroll left: ${surface.scrollLeft}   Scroll top: ${surface.scrollTop}\nPointer moves inside region: ${moves}   Wheel events: ${wheels}\nLast screen position: ${lastX ?? '—'}, ${lastY ?? '—'}   Last wheel delta: ${lastDX}, ${lastDY}`}
+surface.addEventListener('pointermove',e=>{moves++;lastX=e.screenX;lastY=e.screenY;render()},{passive:true});
+surface.addEventListener('wheel',e=>{wheels++;lastDX=e.deltaX;lastDY=e.deltaY;render()},{passive:true});
+surface.addEventListener('scroll',render,{passive:true});
+document.querySelector('#reset').onclick=()=>{moves=0;wheels=0;lastX=null;lastY=null;lastDX=0;lastDY=0;surface.scrollTo(0,0);render()};
+document.querySelector('#center').onclick=()=>{surface.scrollTo(800,1800);render()};render();
+</script></html>
