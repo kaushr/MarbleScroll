@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let reverseItem = NSMenuItem(title: "Reverse Direction", action: #selector(reverse), keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Launch at Login", action: #selector(login), keyEquivalent: "")
     private var panel: SettingsPanel?
+    private var setupPanel: SetupPanel?
     private var recognitionTimer: Timer?
     private var recognitionDeadline: Double?
     private var probeTimer: Timer?
@@ -52,7 +53,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         menu.delegate = self
-        for item in [stateItem, deviceItem, .separator(), enabledItem,
+        for item in [stateItem, deviceItem, .separator(),
+                     NSMenuItem(title: "Setup & Status…", action: #selector(showSetup), keyEquivalent: ""), enabledItem,
                      NSMenuItem(title: "Scroll Speed…", action: #selector(configure), keyEquivalent: ""),
                      reverseItem, NSMenuItem(title: "Configure Button…", action: #selector(configure), keyEquivalent: ""),
                      NSMenuItem(title: "Detect Button (10 seconds)…", action: #selector(detectButton), keyEquivalent: ""),
@@ -72,6 +74,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         setupEmergencySignals()
         refresh()
+        if settings.button == nil || CommandLine.arguments.contains("--show-setup") { showSetup() }
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showSetup(); return true
+    }
+    @objc private func showSetup() {
+        if setupPanel == nil {
+            let panel = SetupPanel()
+            panel.onDetect = { [weak self] in self?.detectButton() }
+            panel.onToggle = { [weak self] in self?.toggle() }
+            panel.onSettings = { [weak self] in self?.configure() }
+            panel.onDisable = { [weak self] in self?.emergency() }
+            setupPanel = panel
+        }
+        refresh(); setupPanel?.showWindow(nil); NSApp.activate(ignoringOtherApps: true)
     }
     func applicationWillTerminate(_ notification: Notification) { disable(.terminating); presence.stop() }
     func menuWillOpen(_ menu: NSMenu) {
@@ -150,6 +167,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let icon = session.enabled ? (state == "Locked scrolling" ? "lock.circle.fill" : "arrow.up.and.down.circle.fill") : "circle.dotted"
         statusItem.button?.image = NSImage(systemSymbolName: icon, accessibilityDescription: "MarbleScroll: \(state)")
         statusItem.button?.toolTip = "MarbleScroll: \(stateItem.title). \(session.stopReason?.rawValue ?? "")"
+        setupPanel?.update(enabled: session.enabled, state: state, button: settings.button,
+                           device: presence.connected, permission: AXIsProcessTrusted(),
+                           liveAllowed: liveAllowed, probing: probeTimer != nil)
     }
     private func message(_ title: String, _ body: String) {
         let alert = NSAlert(); alert.messageText = title; alert.informativeText = body
@@ -206,6 +226,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         catch { disable(.tapFailure); message("Button detection unavailable", error.localizedDescription); return }
         let timer = Timer(timeInterval: 10, repeats: false) { [weak self] _ in self?.disable(.disabled) }
         probeTimer = timer; RunLoop.main.add(timer, forMode: .common)
+        refresh()
     }
     private func detected(_ button: Int) {
         // No modal UI or preference write inside event callback.
