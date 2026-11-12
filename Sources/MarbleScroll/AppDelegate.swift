@@ -176,8 +176,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                            liveAllowed: liveAllowed, probing: probeTimer != nil)
         panel?.updateDetection(detection.state, status: detectionStatus)
     }
-    private func message(_ title: String, _ body: String) {
+    private func message(_ title: String, _ body: String, dismissTitle: String = "Close") {
         let alert = NSAlert(); alert.messageText = title; alert.informativeText = body
+        let dismiss = alert.addButton(withTitle: dismissTitle)
+        dismiss.keyEquivalent = "\u{1b}"; dismiss.keyEquivalentModifierMask = []
         NSApp.activate(ignoringOtherApps: true); alert.runModal()
     }
     private func consent(_ title: String, _ body: String) -> Bool {
@@ -193,7 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         guard presence.connected else { message("Trackball unavailable", "Connect a Logitech 046D:C408 before enabling."); return false }
         guard AXIsProcessTrusted() else {
-            message("Accessibility permission is absent", "This OS grant is broader than mouse access. Obtain approval and add MarbleScroll manually in Privacy & Security → Accessibility. No permission request was made. Do not grant Full Disk Access or run as administrator.")
+            message("Accessibility access is needed", "Enable MarbleScroll in System Settings → Privacy & Security → Accessibility, then return here. This macOS permission grants broader control than mouse scrolling. A rebuilt app may need to be removed and added again.", dismissTitle: "Cancel")
             return false
         }
         return true

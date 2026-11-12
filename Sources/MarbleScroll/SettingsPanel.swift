@@ -60,7 +60,9 @@ final class SettingsPanel: NSWindowController, NSWindowDelegate {
         }
         stack.addArrangedSubview(reverse); stack.addArrangedSubview(acceleration)
         let save = NSButton(title: "Save and Disable Scrolling", target: self, action: #selector(save))
-        stack.addArrangedSubview(save)
+        let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancel))
+        cancel.keyEquivalent = "\u{1b}"; cancel.keyEquivalentModifierMask = []
+        stack.addArrangedSubview(NSStackView(views: [save, cancel]))
         update(settings); updateDetection(.disabled, status: "Detection is off. Enable it first; tracking will not start automatically.")
         window.center()
     }
@@ -92,6 +94,7 @@ final class SettingsPanel: NSWindowController, NSWindowDelegate {
     @objc private func changeDetection() { onDetectionEnabled?(detectionEnabled.state == .on) }
     @objc private func start() { onStartTracking?() }
     @objc private func stop() { onStopTracking?() }
+    @objc private func cancel() { close() }
     @objc private func useDetected() {
         guard let candidate else { return }
         fields["button"]?.stringValue = String(candidate)
