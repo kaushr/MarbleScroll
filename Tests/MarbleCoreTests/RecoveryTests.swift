@@ -167,3 +167,26 @@ func everyStopReasonFailsOpenAndResets(reason: StopReason) throws {
         Issue.record("Zero delta must not post"); return true
     })
 }
+
+@Test func reversingWhileEnabledKeepsTapAndLockActive() throws {
+    let e = Environment(); try e.start(); e.lock()
+    let stops = e.backend.stops
+    e.session.setReverse(true)
+    #expect(e.session.enabled); #expect(e.backend.active); #expect(e.backend.stops == stops)
+    #expect(e.session.interaction.state == .lockedScroll)
+    var output: ScrollPixels?
+    let consumed = e.session.route(Input(.move(Delta(4, 2)), at: 0.2)) { output = $0; return true }
+    #expect(consumed); #expect(output == ScrollPixels(horizontal: 8, vertical: 4))
+}
+@Test func reverseDirectionChangeClearsPriorFractionalResidual() throws {
+    let e = Environment(); var s = Settings(); s.button = 3; s.speed = 0.5
+    e.session.configure(s); try e.start(); e.lock()
+    _ = e.session.route(Input(.move(Delta(1, 0)), at: 0.2)) { _ in true }
+    e.session.setReverse(true)
+    var emitted = 0
+    _ = e.session.route(Input(.move(Delta(1, 0)), at: 0.3)) { _ in emitted += 1; return true }
+    #expect(emitted == 0)
+    var horizontal: Int32 = 0
+    _ = e.session.route(Input(.move(Delta(1, 0)), at: 0.4)) { horizontal = $0.horizontal; return true }
+    #expect(horizontal == 1)
+}

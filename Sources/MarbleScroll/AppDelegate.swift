@@ -57,8 +57,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         for item in [stateItem, deviceItem, .separator(),
                      NSMenuItem(title: "Setup & Status…", action: #selector(showSetup), keyEquivalent: ""), enabledItem,
-                     NSMenuItem(title: "Scroll Speed…", action: #selector(configure), keyEquivalent: ""),
-                     reverseItem, NSMenuItem(title: "Configure Button…", action: #selector(configure), keyEquivalent: ""),
+                     reverseItem, NSMenuItem(title: "Scroll Speed…", action: #selector(configure), keyEquivalent: ""),
+                     NSMenuItem(title: "Configure Button…", action: #selector(configure), keyEquivalent: ""),
                      loginItem, .separator(),
                      NSMenuItem(title: "Emergency Disable", action: #selector(emergency), keyEquivalent: ""),
                      NSMenuItem(title: "About MarbleScroll", action: #selector(about), keyEquivalent: ""),
@@ -204,7 +204,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if session.enabled { disable(.disabled); return }
         guard mayUseLiveInput() else { return }
         guard settings.button != nil else { message("Configure a button first", "Open Configure Button, enable detection, then click Start Tracking. Press the small button once, choose Use Detected Button, and Save."); return }
-        guard consent("Enable global mouse filtering?", "Trackball presence is checked, but mouse events cannot be reliably attributed to a USB device. Other mice and trackpads can drive scrolling. No keyboard events are observed. Emergency disable: kill -USR1 \(ProcessInfo.processInfo.processIdentifier).") else { return }
+        // The Scrolling Enabled control is the explicit enable action; scope is disclosed
+        // in Setup & Status and the device menu row. Do not add a second confirmation.
         disable(.disabled)
         driver.gate.allowExplicitStart()
         do { try session.start(liveAuthorized: liveAllowed, globalConsent: true) }
@@ -228,7 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel?.update(settings); panel?.showWindow(nil); NSApp.activate(ignoringOtherApps: true)
     }
     @objc private func reverse() {
-        disable(.disabled); settings.reverse.toggle(); configuration.save(settings); session.configure(settings); refresh()
+        settings.reverse.toggle(); configuration.save(settings); session.setReverse(settings.reverse); refresh()
     }
     private func setDetectionEnabled(_ enabled: Bool) {
         disable(.disabled)

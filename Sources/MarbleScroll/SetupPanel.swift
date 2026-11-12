@@ -10,14 +10,14 @@ final class SetupPanel: NSWindowController {
     var onSettings: (() -> Void)?
     var onDisable: (() -> Void)?
     init() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 510, height: 330),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 510, height: 380),
                               styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         window.title = "MarbleScroll Setup & Status"; window.isReleasedWhenClosed = false
         super.init(window: window)
         let heading = NSTextField(labelWithString: "Set up your small trackball button")
         heading.font = .boldSystemFont(ofSize: 18)
         let instructions = NSTextField(wrappingLabelWithString:
-            "1. Open Configure Button. Enable Button Detection, then click Start Tracking.\n2. Press the small button once, choose Use Detected Button, then Save.\n3. Click Enable Scrolling and accept global mode.\nHold + roll to scroll; double-click to lock; click once to unlock.")
+            "1. Open Configure Button. Enable Button Detection, then click Start Tracking.\n2. Press the small button once, choose Use Detected Button, then Save.\n3. Click Enable Scrolling.\nHold + roll to scroll; double-click to lock; click once to unlock.\nGlobal mode: other mice and trackpads can also drive scrolling while enabled.")
         let detect = NSButton(title: "Configure Button…", target: self, action: #selector(detect))
         enable.target = self; enable.action = #selector(toggle)
         let settings = NSButton(title: "Settings…", target: self, action: #selector(configure))

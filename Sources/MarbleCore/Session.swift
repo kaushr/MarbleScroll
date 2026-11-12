@@ -39,6 +39,7 @@ public final class Session {
         backend.stop()
     }
     public func configure(_ settings: Settings) { stop(.disabled); interaction.configure(settings) }
+    public func setReverse(_ reverse: Bool) { interaction.setReverse(reverse); converter.reset() }
     public func permissionChanged() { if !permission() { stop(.permissionRevoked) } }
     public func deviceChanged() { if !device() { stop(.deviceDisconnected) } }
     public func tapFailed(timeout: Bool) {

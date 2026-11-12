@@ -38,6 +38,7 @@ public struct Interaction {
         state = .normal; isDown = false; pending = .zero; travel = 0; lastTime = nil
     }
     public mutating func configure(_ settings: Settings) { reset(); self.settings = settings.validated() }
+    public mutating func setReverse(_ reverse: Bool) { settings.reverse = reverse }
 
     public mutating func handle(_ input: Input) -> Decision {
         // Synthetic events cannot change click recognition, time or state.
