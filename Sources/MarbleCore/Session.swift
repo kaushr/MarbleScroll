@@ -73,6 +73,4 @@ public final class Session {
             return true
         }
     }
-    /// A failure to allocate output must release the current physical event unchanged.
-    public func pixels(for delta: Delta) -> ScrollPixels? { converter.convert(delta, settings: interaction.settings) }
 }
