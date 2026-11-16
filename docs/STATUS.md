@@ -1,6 +1,6 @@
 # Current verification status
 
-Updated November 11, 2026 (America/Los_Angeles). This is the sole current build/test/performance/hardware results log. It replaces BUILD_RESULTS.md, TEST_RESULTS.md, PERFORMANCE.md and HARDWARE_RESULTS.md; their dated versions remain in Git history through `918230d`. The independent DragScroll audit remains unchanged in the reference fork.
+Updated November 16, 2026 (America/Los_Angeles). Build/mock measurements below were recorded November 11 unless otherwise dated. This is the sole current build/test/performance/hardware results log. It replaces BUILD_RESULTS.md, TEST_RESULTS.md, PERFORMANCE.md and HARDWARE_RESULTS.md; their dated versions remain in Git history through `918230d`. The independent DragScroll audit remains unchanged in the reference fork.
 
 **Compiled prototype; physical acceptance incomplete.** User approval covers supervised T-BC21 testing, global fallback and Accessibility. Launch at login must remain disabled. No binary release is authorized or published. Installation has not been performed.
 
@@ -11,7 +11,7 @@ Implementation: `1987100`. Build/CI configuration: `26c4e9768f71e19f8df9f330446f
 | Check | Result and scope |
 | --- | --- |
 | Local automated suite | **PASS: 105 mock tests**, zero failures, 0.017 seconds reported execution. Swift 6 mode, no compiler warnings |
-| Local Release arm64 app | **PASS**, SwiftPM build and strict ad-hoc signature verification. Built separately; candidate not installed or launched with native UI/input |
+| Local Release arm64 app | **PASS**, SwiftPM build and strict ad-hoc signature verification. Built separately on November 11; updated local development bundle launched under supervision November 16, not installed |
 | Project / Info.plist syntax | **PASS**, plutil lint; all twelve Swift implementation files referenced in Xcode |
 | macOS CI | **PASS**, [run 43163348589](https://github.com/kaushr/MarbleScroll/actions/runs/43163348589), exact revision 26c4e97; Xcode 16.4, Swift 6.1.2 |
 | CI mocks | **PASS: 105 tests**, zero failures, 0.017 seconds reported execution |
@@ -20,7 +20,7 @@ Implementation: `1987100`. Build/CI configuration: `26c4e9768f71e19f8df9f330446f
 | Local Xcode engine | **Unavailable**, Command Line Tools selected and no full Xcode installed. No developer-directory change/download performed; CI supplies actual Xcode evidence |
 | SwiftPM manifest sandbox | Enabled by default. Local nested command sandbox rejected sandbox_apply; the same default scripts passed outside that nested sandbox. Optional restricted-host opt-out is explicit, not the default |
 | Signing identity | Read-only local check: zero valid code-signing identities. Default remains ad-hoc; no certificate/trust change made |
-| Candidate hardware/UI | **NOT TESTED**. Older-build observations below must not be treated as acceptance of this candidate |
+| Candidate native UI/input setup | **Observed November 16:** Accessibility allowed, device connected, saved CG button 3, scrolling enabled and modifying HID-entry tap present. Pointer stability and physical interaction matrix remain unverified |
 
 Local host: Apple Silicon, macOS Sequoia 15.7.8 (24G824), Swift 6.1.2, SDK 15.5. Candidate minimum macOS 15.0, arm64. Local candidate:
 
@@ -30,7 +30,7 @@ SHA-256 (Contents/MacOS/MarbleScroll):
 678bbbd8c0c2c25a5f38726c91e3d78ef7205b49d63d86e7d25d6fcff296d4c1
 ```
 
-The regular `build/MarbleScroll.app` was not overwritten or restarted for this review. Build products/logs are ignored and have not been uploaded as artifacts or releases. Source was pushed to the public MIT repository only.
+During the November 11 review, the regular `build/MarbleScroll.app` was not overwritten or restarted. The November 16 supervised update is recorded below. Build products/logs are ignored and have not been uploaded as artifacts or releases. Source was pushed to the public MIT repository only.
 
 ## What the tests establish
 
@@ -78,7 +78,7 @@ These are dated older-build observations, not a completed acceptance matrix:
 4. The Core Graphics fallback is **global**, gated only by trackball presence. Other mice/trackpads can drive the active mode. No reliable physical-device attribution is claimed.
 5. Native scroll posting has no delivery acknowledgment. Apps need actual scrollable content/overflow and pointer hit-testing support; horizontal support varies.
 6. New settings default to a 0.30-second hold threshold. Previously saved 0.18-second or custom values remain unchanged; select 0.30 in Settings to try the new default on an existing profile.
-7. Ad-hoc signing still causes permission churn. The candidate needs an exact-bundle grant check before live use; no grant, certificate provisioning or live launch was performed in this review.
+7. Ad-hoc signing still causes permission churn. Exact-bundle AX recognition was confirmed during the November 16 supervised update below. No certificate provisioning was performed. Future rebuilds still need a grant check.
 8. Login startup remains off and untested. Normal launches no longer need a terminal flag but always require explicit enable; --no-live-input provides inert UI diagnostics. No release readiness is claimed.
 
 Do not enable continuous daily use or publish a binary until the physical gates pass. Keep the separate reference audit intact and label every new result with exact source/build, permissions, app/version and actual observation.
@@ -88,3 +88,13 @@ Do not enable continuous daily use or publish a binary until the physical gates 
 Fetched origin and verified local HEAD, origin/main and GitHub main all at 839286be480e40c2ba4e19a8ab15ca5718314566, with a clean working tree, zero commits ahead/behind and no stashes. CI for that exact revision also passed: [run 43163878754](https://github.com/kaushr/MarbleScroll/actions/runs/43163878754).
 
 The existing regular-bundle process (PID 6746, older c71bea6 artifact) was still running. Native Setup & Status showed **Scrolling disabled**, saved CG button 3, trackball not detected and Accessibility missing. The user is away from the trackball, so physical testing is deferred. No process was stopped/restarted, no candidate was launched and no permission or login setting was changed during this check. This is an older-build UI observation, not current-candidate acceptance.
+
+## November 16 — current build and Accessibility restored
+
+The user showed the missing-Accessibility warning. The previously running regular bundle was the older c71bea6 build (PID 6746), and System Settings initially had no MarbleScroll entry. Announced the restart, preserved that bundle as ignored `build/Archives/MarbleScroll-c71bea6-aa3b4fab.zip`, terminated only its verified process, then copied the previously reviewed/signed candidate into the regular local development bundle. The code is unchanged from 1987100; Git was clean and synchronized at bf8d5c4 before this evidence update.
+
+The updated executable digest is 678bbbd8c0c2c25a5f38726c91e3d78ef7205b49d63d86e7d25d6fcff296d4c1; strict signature verification passed. It was opened through native UI at the fixed build path and ran as PID 66505. No rebuild, installation into Applications, certificate provisioning, automatic startup or security bypass was performed.
+
+While the user operated System Settings, the MarbleScroll entry appeared **on**; the user replied “done.” Native Setup & Status independently showed **Trackball: connected · Accessibility: allowed**, saved CG button 3, and Temporary scrolling / Scrolling enabled. This agent did not click Scrolling Enabled during this repair. Read-only event-tap metadata confirmed an enabled modifying HID-entry tap (tapPoint 0, mask 0x0e0000e0) for the updated PID.
+
+This confirms current-build permission recognition, device presence and native tap activation. It does **not** establish visible cursor freeze, successful scroll delivery, hold/release or lock/unlock acceptance. The first pending supervised step remains [pointer and scroll-target stability](HARDWARE_TESTING.md#first-gate-pointer-stability-and-stable-scroll-target). Launch at login remains disabled; no binary release was published.
